@@ -135,6 +135,12 @@
 #define AP_SERIALMANAGER_IMUOUT_BUFSIZE_RX     128
 #define AP_SERIALMANAGER_IMUOUT_BUFSIZE_TX     2048
 
+// DDS XRCE: room to send the client's whole reliable window at once
+// (AP_DDS: 8 buffers of 512 bytes, plus framing), which is what it
+// resends when the agent reports a lost frame
+#define AP_SERIALMANAGER_DDS_BUFSIZE_RX     2048
+#define AP_SERIALMANAGER_DDS_BUFSIZE_TX     8192
+
 #ifndef HAL_HAVE_SERIAL0
 #define HAL_HAVE_SERIAL0 (HAL_NUM_SERIAL_PORTS > 0)
 #endif
