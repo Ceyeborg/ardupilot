@@ -33,8 +33,8 @@
 	url = https://github.com/DroneCAN/libcanard
 [submodule "modules/Micro-XRCE-DDS-Client"]
 	path = modules/Micro-XRCE-DDS-Client
-	url = https://github.com/ardupilot/Micro-XRCE-DDS-Client.git
-	branch = master
+	url = https://github.com/Ceyeborg/Micro-XRCE-DDS-Client.git
+	branch = ceyeborg-v2.4.1-heartbeat
 [submodule "modules/Micro-CDR"]
 	path = modules/Micro-CDR
 	url = https://github.com/ardupilot/Micro-CDR.git
