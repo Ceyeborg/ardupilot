@@ -6,6 +6,10 @@
 
 #include <errno.h>
 
+// how long one write waits for room in the port's send buffer. The framing
+// layer writes at most 42 bytes at a time, 7 ms at 57600 baud.
+static constexpr uint32_t SERIAL_WRITE_TIMEOUT_MS = 20;
+
 /*
   open connection on a serial port
  */
@@ -42,8 +46,28 @@ size_t AP_DDS_Client::serial_transport_write(uxrCustomTransport *t, const uint8_
         *error = EINVAL;
         return 0;
     }
-    ssize_t bytes_written = dds->serial.port->write(buf, len);
-    if (bytes_written <= 0) {
+    /*
+      The framing layer hands over a frame in chunks and abandons it at
+      the first chunk that is not taken, leaving a truncated frame on the
+      wire that the reliable stream has already counted as sent. A UART
+      write does not block, so when the port's buffer is full wait for it
+      to drain instead: the link then slows the publishers down rather
+      than losing their frames.
+     */
+    size_t bytes_written = 0;
+    const uint32_t tstart = AP_HAL::millis();
+    while (bytes_written < len) {
+        const ssize_t n = dds->serial.port->write(buf + bytes_written, len - bytes_written);
+        if (n > 0) {
+            bytes_written += n;
+            continue;
+        }
+        if (AP_HAL::millis() - tstart >= SERIAL_WRITE_TIMEOUT_MS) {
+            break;
+        }
+        hal.scheduler->delay_microseconds(100);
+    }
+    if (bytes_written == 0) {
         *error = 1;
         return 0;
     }
