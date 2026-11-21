@@ -7,7 +7,11 @@
 #include <errno.h>
 
 // how long one write waits for room in the port's send buffer. The framing
-// layer writes at most 42 bytes at a time, 7 ms at 57600 baud.
+// layer writes at most 42 bytes at a time (uxrFramingIO::wb), 7 ms at 57600
+// baud. A write that times out part way returns what it wrote: the framing
+// layer (uxr_framing_write_transport) calls again for the rest for as long
+// as each call makes progress, so the count must not be turned into a
+// failure -- the bytes are already on the wire.
 static constexpr uint32_t SERIAL_WRITE_TIMEOUT_MS = 20;
 
 /*
