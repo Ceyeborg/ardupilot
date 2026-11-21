@@ -1882,16 +1882,29 @@ extern "C" {
     int clock_gettime(clockid_t clockid, struct timespec *ts);
 }
 
+/*
+  The XRCE client's clock (uxr_millis() and uxr_nanos(), which ask for
+  CLOCK_REALTIME) is used only to measure timeouts: it never reaches a
+  message, whose stamps come from AP_RTC (update_topic). So it is the
+  uptime here, whatever the clock asked for, and never steps.
+
+  It used to be UTC once AP_RTC had a source, and uptime before: a step of
+  ~56 years, the first time GPS (or a GCS) sets the time. The client
+  measures a wait as `remaining -= (int)(now - then)`; the step does not fit
+  an int, and for half of each 49.7-day cycle of UTC its low 32 bits are
+  negative, so the remaining time grows by up to 24.8 days. A ping wait
+  that the step lands in then never sends another ping: an autopilot that
+  had no agent when GPS set its clock never connects, until it is reset or
+  the wait runs out -- and nothing says so, as the wait sends no text.
+  Booting the companion computer first hides it: the session is up before
+  the step.
+ */
 int clock_gettime(clockid_t clockid, struct timespec *ts)
 {
-    //! @todo the value of clockid is ignored here.
-    //! A fallback mechanism is employed against the caller's choice of clock.
-    uint64_t utc_usec;
-    if (!AP::rtc().get_utc_usec(utc_usec)) {
-        utc_usec = AP_HAL::micros64();
-    }
-    ts->tv_sec = utc_usec / 1000000ULL;
-    ts->tv_nsec = (utc_usec % 1000000ULL) * 1000UL;
+    (void)clockid;
+    const uint64_t usec = AP_HAL::micros64();
+    ts->tv_sec = usec / 1000000ULL;
+    ts->tv_nsec = (usec % 1000000ULL) * 1000UL;
     return 0;
 }
 #endif // CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
